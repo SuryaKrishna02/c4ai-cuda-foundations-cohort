@@ -23,18 +23,33 @@ double HighResolutionTimerImpl::GetElapsedTimeInMicroSeconds()
 {
     return elapsedTime;
 }
- 
-class HighResolutionTimerImpl
+
+HighResolutionTimer::HighResolutionTimer(void)
 {
-public:
-    HighResolutionTimerImpl();
+    pImpl = new HighResolutionTimerImpl();
+}
  
-    void Tick();
+HighResolutionTimer::~HighResolutionTimer(void)
+{
+    delete pImpl;
+}
  
-    double GetElapsedTimeInMicroSeconds();
+void HighResolutionTimer::Tick()
+{
+    pImpl->Tick();
+}
  
-private:
-    LARGE_INTEGER t0, t1;
-    LARGE_INTEGER frequency;
-    double elapsedTime;
-};
+double HighResolutionTimer::ElapsedSeconds() const
+{
+    return pImpl->GetElapsedTimeInMicroSeconds() * 0.000001;
+}
+ 
+double HighResolutionTimer::ElapsedMilliSeconds() const
+{
+    return pImpl->GetElapsedTimeInMicroSeconds() * 0.001;
+}
+ 
+double HighResolutionTimer::ElapsedMicroSeconds() const
+{
+    return pImpl->GetElapsedTimeInMicroSeconds();
+}

@@ -1,6 +1,21 @@
 #pragma once
 
-class HighResolutionTimerImpl;
+class HighResolutionTimerImpl
+{
+public:
+    HighResolutionTimerImpl();
+ 
+    void Tick();
+ 
+    double GetElapsedTimeInMicroSeconds();
+ 
+private:
+    LARGE_INTEGER t0, t1;
+    LARGE_INTEGER frequency;
+    double elapsedTime;
+
+
+};
  
 class HighResolutionTimer
 {
