@@ -63,10 +63,10 @@ int main()
     // Launch kernel
     matrixMultiply<<<dimGrid, dimBlock>>>(d_a, d_b, d_c, M, N);
 
+    cudaDeviceSynchronize();
+
     // Copy result from device to host
     cudaMemcpy(h_c, d_c, M * N * sizeof(float), cudaMemcpyDeviceToHost);
-
-    cudaDeviceSynchronize();
 
     // Free device memory
     cudaFree(d_a);

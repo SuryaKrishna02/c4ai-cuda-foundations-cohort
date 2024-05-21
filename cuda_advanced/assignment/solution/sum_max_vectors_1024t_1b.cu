@@ -1,21 +1,38 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-__global__ void findMaxMultipleThread(float *d_vec1, float *d_vec2, float *d_max1, float *d_max2, int n)
+__global__ void findMax(float *d_vec, float *d_max, int n)
 {
-    if (threadIdx.x == 0 && blockIdx.x == 0)
+    extern __shared__ float sdata[];
+
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // Load shared memory
+    if (i < n)
     {
-        float max1 = -FLT_MAX;
-        float max2 = -FLT_MAX;
+        sdata[tid] = d_vec[i];
+    }
+    else
+    {
+        sdata[tid] = -FLT_MAX;
+    }
+    __syncthreads();
 
-        for (int i = 0; i < n; ++i)
+    // Perform parallel reduction to find max
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s && i + s < n)
         {
-            max1 = max(max1, d_vec1[i]);
-            max2 = max(max2, d_vec2[i]);
+            sdata[tid] = max(sdata[tid], sdata[tid + s]);
         }
+        __syncthreads();
+    }
 
-        d_max1[0] = max1;
-        d_max2[0] = max2;
+    // Write result for this block to global memory
+    if (tid == 0)
+    {
+        d_max[blockIdx.x] = sdata[0];
     }
 }
 
@@ -45,17 +62,29 @@ int main()
     cudaMemcpy(d_vec1, h_vec1, bytes, cudaMemcpyHostToDevice);
     cudaMemcpy(d_vec2, h_vec2, bytes, cudaMemcpyHostToDevice);
 
-    findMaxMultipleThread<<<numBlocks, numThreads>>>(d_vec1, d_vec2, d_max1, d_max2, N);
+    findMax<<<numBlocks, numThreads, numThreads * sizeof(float)>>>(d_vec1, d_max1, N);
+    findMax<<<numBlocks, numThreads, numThreads * sizeof(float)>>>(d_vec2, d_max2, N);
+    cudaDeviceSynchronize();
 
-    float h_max1, h_max2;
-    cudaMemcpy(&h_max1, d_max1, sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&h_max2, d_max2, sizeof(float), cudaMemcpyDeviceToHost);
+    float *h_max1 = new float[numBlocks];
+    float *h_max2 = new float[numBlocks];
+    cudaMemcpy(h_max1, d_max1, sizeof(float) * numBlocks, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_max2, d_max2, sizeof(float) * numBlocks, cudaMemcpyDeviceToHost);
 
-    float sum_max = h_max1 + h_max2;
+    float max1 = -FLT_MAX, max2 = -FLT_MAX;
+    for (int i = 0; i < numBlocks; ++i)
+    {
+        max1 = max(max1, h_max1[i]);
+        max2 = max(max2, h_max2[i]);
+    }
+
+    float sum_max = max1 + max2;
     std::cout << "Sum of maximum elements: " << sum_max << std::endl;
 
     free(h_vec1);
     free(h_vec2);
+    free(h_max1);
+    free(h_max2);
 
     cudaFree(d_vec1);
     cudaFree(d_vec2);

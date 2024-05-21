@@ -65,6 +65,8 @@ int main()
     findMax<<<numBlocks, numThreads, numThreads * sizeof(float)>>>(d_vec1, d_max1, N);
     findMax<<<numBlocks, numThreads, numThreads * sizeof(float)>>>(d_vec2, d_max2, N);
 
+    cudaDeviceSynchronize();
+
     float *h_max1 = new float[numBlocks];
     float *h_max2 = new float[numBlocks];
     cudaMemcpy(h_max1, d_max1, sizeof(float) * numBlocks, cudaMemcpyDeviceToHost);
