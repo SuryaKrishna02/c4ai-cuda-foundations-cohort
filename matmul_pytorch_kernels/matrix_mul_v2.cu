@@ -15,9 +15,9 @@ __global__ void matrixMul(int *a, int *b, int *c, int N)
     {
         // Accumulate a partial result
         int tmp = 0;
-        for (int i = 0; i < N; i++)
+        for (int k = 0; k < N; k++)
         {
-            tmp += a[row * N + i] * b[i * N + col];
+            tmp += a[row * N + k] * b[k * N + col];
         }
 
         // Write back the result
